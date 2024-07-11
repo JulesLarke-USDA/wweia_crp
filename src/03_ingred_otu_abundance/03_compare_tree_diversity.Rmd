@@ -1,0 +1,702 @@
+---
+title: "03_compare_tree_diversity"
+---
+
+
+```{r}
+getwd()
+set.seed(0)
+require(data.table)
+library(dplyr)
+
+#import data 
+foods <- data.table::fread('../../data/03/foodcode/recalls_foodcode_drywt_no_water.txt', sep = '\t', header=T)
+colnames(foods)
+
+n_distinct(foods$UserName)
+
+ingred <- data.table::fread('../../data/03/recalls_e_adjust_drywt_no_salt_water.txt', sep = '\t', header=T)
+colnames(ingred)
+n_distinct(ingred$UserName)
+
+```
+
+```{r}
+# filter to only look at legumes, nuts, seeds group
+# this subsets the participants that consumed any milk products
+food_1 = foods %>% filter(FoodCode %in% (10000000:19999999))
+unique(food_1$FoodCode)
+# parse the milk products from ingredients 
+ingred_1 = ingred %>% filter(grepl("^1",FoodCode))
+
+unique(ingred_1$FoodCode)
+```
+
+
+```{r}
+# arrange data for diversity metric calculations
+food_1_wide = food_1 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+food_1_wide$shannon_food <- vegan::diversity(food_1_wide[,2:442], "shannon") 
+
+ingred_1_wide = ingred_1 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+ingred_1_wide$shannon_ingred <- vegan::diversity(ingred_1_wide[,2:69], "shannon") 
+
+# subset N to compare only observations in the foodcode group
+ingred_1_compare <- ingred_1_wide %>% filter(UserName %in% food_1_wide$UserName) 
+food_1_compare <- food_1_wide %>% filter(UserName %in% ingred_1_compare$UserName)
+
+food_1_compare <- food_1_compare %>% select(UserName, shannon_food)
+
+ingred_1_compare <- ingred_1_compare %>% select(UserName, shannon_ingred)
+
+compare_1_div <- merge(food_1_compare, ingred_1_compare, on=UserName)
+
+t.test(compare_1_div$shannon_food, compare_1_div$shannon_ingred, paired=T)
+boxplot(compare_1_div$shannon_food, compare_1_div$shannon_ingred)
+```
+
+```{r}
+# filter to only look at meat, fish and mixtures
+# this subsets the participants that consumed any meat products
+food_2 = foods %>% filter(FoodCode %in% (20000000:29999999))
+unique(food_2$FoodCode)
+# parse the milk products from ingredients 
+ingred_2 = ingred %>% filter(grepl("^2",FoodCode))
+
+unique(ingred_2$FoodCode)
+```
+
+```{r}
+# arrange data for diversity metric calculations
+food_2_wide = food_2 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+food_2_wide$shannon_food <- vegan::diversity(food_2_wide[,2:1574], "shannon") 
+
+ingred_2_wide = ingred_2 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+ingred_2_wide$shannon_ingred <- vegan::diversity(ingred_2_wide[,2:110], "shannon") 
+
+# subset N to compare only observations in the foodcode group
+ingred_2_compare <- ingred_2_wide %>% filter(UserName %in% food_2_wide$UserName) 
+food_2_compare <- food_2_wide %>% filter(UserName %in% ingred_2_compare$UserName)
+
+food_2_compare <- food_2_compare %>% select(UserName, shannon_food)
+
+ingred_2_compare <- ingred_2_compare %>% select(UserName, shannon_ingred)
+
+compare_2_div <- merge(food_2_compare, ingred_2_compare, on=UserName)
+
+t.test(compare_2_div$shannon_food, compare_2_div$shannon_ingred, paired=T)
+boxplot(compare_2_div$shannon_food, compare_2_div$shannon_ingred)
+```
+
+```{r}
+# filter to only look at eggs
+# this subsets the participants that consumed any egg products
+food_3 = foods %>% filter(FoodCode %in% (30000000:39999999))
+unique(food_3$FoodCode)
+# parse the milk products from ingredients 
+ingred_3 = ingred %>% filter(grepl("^3",FoodCode))
+
+unique(ingred_3$FoodCode)
+```
+
+```{r}
+# arrange data for diversity metric calculations
+food_3_wide = food_3 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+food_3_wide$shannon_food <- vegan::diversity(food_3_wide[,2:164], "shannon") 
+
+ingred_3_wide = ingred_3 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+ingred_3_wide$shannon_ingred <- vegan::diversity(ingred_3_wide[,2:5], "shannon") 
+
+# subset N to compare only observations in the foodcode group
+ingred_3_compare <- ingred_3_wide %>% filter(UserName %in% food_3_wide$UserName) 
+food_3_compare <- food_3_wide %>% filter(UserName %in% ingred_3_compare$UserName)
+
+food_3_compare <- food_3_compare %>% select(UserName, shannon_food)
+
+ingred_3_compare <- ingred_3_compare %>% select(UserName, shannon_ingred)
+
+compare_3_div <- merge(food_3_compare, ingred_3_compare, on=UserName)
+
+t.test(compare_3_div$shannon_food, compare_3_div$shannon_ingred, paired=T)
+boxplot(compare_3_div$shannon_food, compare_3_div$shannon_ingred)
+```
+
+```{r}
+# filter to only look at legumes, nuts, seeds group
+# this subsets the participants that consumed any legumes, nuts, seeds
+food_4 = foods %>% filter(FoodCode %in% (40000000:49999999))
+
+# these are participants that consumed zero of the legumes, nuts, seeds group
+#zero_legumes = foods %>% filter(!UserName %in% food_legumes)
+
+# parse the legumes, nuts, seeds from ingredients 
+ingred_4 = ingred %>% filter(grepl("^4",FoodCode))
+
+unique(ingred_4$FoodCode)
+
+ingred_4 = ingred_4 %>% filter(!grepl("^45",FoodCode)) # exclude spices category 45XX
+unique(ingred_4$FoodCode)
+```
+
+```{r}
+# arrange data for diversity metric calculations
+food_4_wide = food_4 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+food_4_wide$shannon_food <- vegan::diversity(food_4_wide[,2:289], "shannon") 
+
+ingred_4_wide = ingred_4 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+ingred_4_wide$shannon_ingred <- vegan::diversity(ingred_4_wide[,2:51], "shannon") 
+
+# subset N to compare only observations in the foodcode group
+ingred_4_compare <- ingred_4_wide %>% filter(UserName %in% food_4_wide$UserName) 
+food_4_compare <- food_4_wide %>% filter(UserName %in% ingred_4_compare$UserName)
+
+food_4_compare <- food_4_compare %>% select(UserName, shannon_food)
+
+ingred_4_compare <- ingred_4_compare %>% select(UserName, shannon_ingred)
+
+compare_4_div <- merge(food_4_compare, ingred_4_compare, on=UserName)
+
+t.test(compare_4_div$shannon_food, compare_4_div$shannon_ingred, paired=T)
+boxplot(compare_4_div$shannon_food, compare_4_div$shannon_ingred)
+```
+
+```{r}
+# filter to only look at grain products
+# this subsets the participants that consumed any egg products
+food_5 = foods %>% filter(FoodCode %in% (50000000:59999999))
+unique(food_5$FoodCode)
+# parse the milk products from ingredients 
+ingred_5 = ingred %>% filter(grepl("^5",FoodCode))
+
+unique(ingred_5$FoodCode)
+```
+
+```{r}
+# arrange data for diversity metric calculations
+food_5_wide = food_5 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+food_5_wide$shannon_food <- vegan::diversity(food_5_wide[,2:1728], "shannon") 
+
+ingred_5_wide = ingred_5 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+ingred_5_wide$shannon_ingred <- vegan::diversity(ingred_5_wide[,2:27], "shannon") 
+
+# subset N to compare only observations in the foodcode group
+ingred_5_compare <- ingred_5_wide %>% filter(UserName %in% food_5_wide$UserName) 
+food_5_compare <- food_5_wide %>% filter(UserName %in% ingred_5_compare$UserName)
+
+food_5_compare <- food_5_compare %>% select(UserName, shannon_food)
+
+ingred_5_compare <- ingred_5_compare %>% select(UserName, shannon_ingred)
+
+compare_5_div <- merge(food_5_compare, ingred_5_compare, on=UserName)
+
+t.test(compare_5_div$shannon_food, compare_5_div$shannon_ingred, paired=T)
+boxplot(compare_5_div$shannon_food, compare_5_div$shannon_ingred)
+```
+
+```{r}
+# filter to only look at fruits
+# this subsets the participants that consumed any fruits
+food_6 = foods %>% filter(FoodCode %in% (60000000:69999999))
+unique(food_6$FoodCode)
+# parse the fruit products from ingredients 
+ingred_6 = ingred %>% filter(grepl("^6",FoodCode))
+
+unique(ingred_6$FoodCode)
+```
+
+```{r}
+# arrange data for diversity metric calculations
+food_6_wide = food_6 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+food_6_wide$shannon_food <- vegan::diversity(food_6_wide[,2:270], "shannon") 
+
+ingred_6_wide = ingred_6 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+ingred_6_wide$shannon_ingred <- vegan::diversity(ingred_6_wide[,2:77], "shannon") 
+
+# subset N to compare only observations in the foodcode group
+ingred_6_compare <- ingred_6_wide %>% filter(UserName %in% food_6_wide$UserName) 
+food_6_compare <- food_6_wide %>% filter(UserName %in% ingred_6_compare$UserName)
+
+food_6_compare <- food_6_compare %>% select(UserName, shannon_food)
+
+ingred_6_compare <- ingred_6_compare %>% select(UserName, shannon_ingred)
+
+compare_6_div <- merge(food_6_compare, ingred_6_compare, on=UserName)
+
+t.test(compare_6_div$shannon_food, compare_6_div$shannon_ingred, paired=T)
+boxplot(compare_6_div$shannon_food, compare_6_div$shannon_ingred)
+```
+
+```{r}
+# filter to only look at vegetables
+# this subsets the participants that consumed any vegetables
+food_7 = foods %>% filter(FoodCode %in% (70000000:79999999))
+unique(food_7$FoodCode)
+# parse the vegetables products from ingredients 
+ingred_7 = ingred %>% filter(grepl("^7",FoodCode))
+
+unique(ingred_7$FoodCode)
+```
+
+```{r}
+# arrange data for diversity metric calculations
+food_7_wide = food_7 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+food_7_wide$shannon_food <- vegan::diversity(food_7_wide[,2:1278], "shannon") 
+
+ingred_7_wide = ingred_7 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+ingred_7_wide$shannon_ingred <- vegan::diversity(ingred_7_wide[,2:116], "shannon") 
+
+# subset N to compare only observations in the foodcode group
+ingred_7_compare <- ingred_7_wide %>% filter(UserName %in% food_7_wide$UserName) 
+food_7_compare <- food_7_wide %>% filter(UserName %in% ingred_7_compare$UserName)
+
+food_7_compare <- food_7_compare %>% select(UserName, shannon_food)
+
+ingred_7_compare <- ingred_7_compare %>% select(UserName, shannon_ingred)
+
+compare_7_div <- merge(food_7_compare, ingred_7_compare, on=UserName)
+
+t.test(compare_7_div$shannon_food, compare_7_div$shannon_ingred, paired=T)
+boxplot(compare_7_div$shannon_food, compare_7_div$shannon_ingred)
+```
+
+```{r}
+# filter to only look at vegetables
+# this subsets the participants that consumed any vegetables
+food_8 = foods %>% filter(FoodCode %in% (80000000:89999999))
+unique(food_8$FoodCode)
+# parse the vegetables products from ingredients 
+ingred_8 = ingred %>% filter(grepl("^8",FoodCode))
+ingred_8 = ingred_8 %>% filter(!grepl("^89",FoodCode))
+unique(ingred_8$FoodCode)
+```
+
+```{r}
+# arrange data for diversity metric calculations
+food_8_wide = food_8 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+food_8_wide$shannon_food <- vegan::diversity(food_8_wide[,2:109], "shannon") 
+
+ingred_8_wide = ingred_8 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+ingred_8_wide$shannon_ingred <- vegan::diversity(ingred_8_wide[,2:32], "shannon") 
+
+# subset N to compare only observations in the foodcode group
+ingred_8_compare <- ingred_8_wide %>% filter(UserName %in% food_8_wide$UserName) 
+food_8_compare <- food_8_wide %>% filter(UserName %in% ingred_8_compare$UserName)
+
+food_8_compare <- food_8_compare %>% select(UserName, shannon_food)
+
+ingred_8_compare <- ingred_8_compare %>% select(UserName, shannon_ingred)
+
+compare_8_div <- merge(food_8_compare, ingred_8_compare, on=UserName)
+
+t.test(compare_8_div$shannon_food, compare_8_div$shannon_ingred, paired=T)
+boxplot(compare_8_div$shannon_food, compare_8_div$shannon_ingred)
+```
+
+```{r}
+# filter to only look at vegetables
+# this subsets the participants that consumed any vegetables
+food_9 = foods %>% filter(FoodCode %in% (90000000:99999999))
+unique(food_9$FoodCode)
+# parse the vegetables products from ingredients 
+ingred_9 = ingred %>% filter(grepl("^9",FoodCode))
+ingred_9 = ingred_9 %>% filter(!grepl("^990",FoodCode))
+unique(ingred_9$FoodCode)
+```
+
+```{r}
+# arrange data for diversity metric calculations
+food_9_wide = food_9 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+food_9_wide$shannon_food <- vegan::diversity(food_9_wide[,2:567], "shannon") 
+
+ingred_9_wide = ingred_9 %>%
+  tidyr::pivot_wider(names_from = FoodCode, values_from = FoodAmt, values_fill = 0)
+
+ingred_9_wide$shannon_ingred <- vegan::diversity(ingred_9_wide[,2:58], "shannon") 
+
+# subset N to compare only observations in the foodcode group
+ingred_9_compare <- ingred_9_wide %>% filter(UserName %in% food_9_wide$UserName) 
+food_9_compare <- food_9_wide %>% filter(UserName %in% ingred_9_compare$UserName)
+
+food_9_compare <- food_9_compare %>% select(UserName, shannon_food)
+
+ingred_9_compare <- ingred_9_compare %>% select(UserName, shannon_ingred)
+
+compare_9_div <- merge(food_9_compare, ingred_9_compare, on=UserName)
+
+t.test(compare_9_div$shannon_food, compare_9_div$shannon_ingred, paired=T)
+boxplot(compare_9_div$shannon_food, compare_9_div$shannon_ingred)
+```
+
+```{r}
+library(ggplot2)
+colnames(compare_1_div)[2:3] = c('Original Tree','New Tree')
+compare_1_plot = compare_1_div %>% tidyr::pivot_longer(!UserName, names_to = 'shannon', values_to = 'div')
+
+compare_1_plot$shannon <- factor(compare_1_plot$shannon, levels = c('Original Tree', 'New Tree'), ordered = TRUE)
+
+p1 <-
+  ggplot(compare_1_plot, aes(x = shannon, y = div, fill = shannon)) +
+  geom_violin(draw_quantiles = 0.5) +
+    annotate(
+    "segment",
+    x = 1,
+    xend = 2,
+    y = 2.5,
+    yend = 2.5,
+    size = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 2.6,
+    label = "***",
+    size =5
+  ) +
+  labs(x = 'Milk and Milk Products', y = 'Shannon diversity', title = '') +
+  scale_fill_manual(values = c('#D6F5F5', '#00A2F2')) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size = 8, color = 'black'),
+    axis.title.x = element_text(size = 8, color = 'black', face = 'bold'),
+    axis.title.y = element_text(size = 8, color = 'black')
+  )
+p1
+```
+
+```{r}
+colnames(compare_2_div)[2:3] = c('Original Tree','New Tree')
+compare_2_plot = compare_2_div %>% tidyr::pivot_longer(!UserName, names_to = 'shannon', values_to = 'div')
+
+compare_2_plot$shannon <- factor(compare_2_plot$shannon, levels = c('Original Tree', 'New Tree'), ordered = TRUE)
+
+p2 <-
+  ggplot(compare_2_plot, aes(x = shannon, y = div, fill = shannon)) +
+  geom_violin(draw_quantiles = 0.5) +
+    annotate(
+    "segment",
+    x = 1,
+    xend = 2,
+    y = 2.75,
+    yend = 2.75,
+    size = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 2.85,
+    label = "***",
+    size =5
+  ) +
+  labs(x = 'Meat, Poultry, Fish, and Mixtures', y = 'Shannon diversity', title = '') +
+  scale_fill_manual(values = c('#E8AD91', '#D43F1F')) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size = 8, color = 'black'),
+    axis.title.x = element_text(size = 8, color = 'black', face = 'bold'),
+    axis.title.y = element_text(size = 8, color = 'black')
+  )
+p2
+```
+
+```{r}
+colnames(compare_3_div)[2:3] = c('Original Tree','New Tree')
+compare_3_plot = compare_3_div %>% tidyr::pivot_longer(!UserName, names_to = 'shannon', values_to = 'div')
+
+compare_3_plot$shannon <- factor(compare_3_plot$shannon, levels = c('Original Tree', 'New Tree'), ordered = TRUE)
+
+p3 <-
+  ggplot(compare_3_plot, aes(x = shannon, y = div, fill = shannon)) +
+  geom_violin(draw_quantiles = 0.5) +
+    annotate(
+    "segment",
+    x = 1,
+    xend = 2,
+    y = 1.5,
+    yend = 1.5,
+    size = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 1.6,
+    label = "NS",
+    size =4
+  ) +
+  labs(x = 'Eggs', y = 'Shannon diversity', title = '') +
+  scale_fill_manual(values = c('#F7E8BA', '#A8863A')) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size = 8, color = 'black'),
+    axis.title.x = element_text(size = 8, color = 'black', face = 'bold'),
+    axis.title.y = element_text(size = 8, color = 'black')
+  )
+p3
+```
+
+```{r}
+colnames(compare_4_div)[2:3] = c('Original Tree','New Tree')
+compare_4_plot = compare_4_div %>% tidyr::pivot_longer(!UserName, names_to = 'shannon', values_to = 'div')
+
+compare_4_plot$shannon <- factor(compare_4_plot$shannon, levels = c('Original Tree', 'New Tree'), ordered = TRUE)
+
+p4 <-
+  ggplot(compare_4_plot, aes(x = shannon, y = div, fill = shannon)) +
+  geom_violin(draw_quantiles = 0.5) +
+    annotate(
+    "segment",
+    x = 1,
+    xend = 2,
+    y = 2.5,
+    yend = 2.5,
+    size = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 2.55,
+    label = "***",
+    size =4
+  ) +
+  labs(x = 'Beans, Peas, Legumes, Nuts, and Seeds', y = 'Shannon diversity', title = '') +
+  scale_fill_manual(values = c('#B9896F', '#662A00')) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size = 8, color = 'black'),
+    axis.title.x = element_text(size = 8, color = 'black', face = 'bold'),
+    axis.title.y = element_text(size = 8, color = 'black')
+  )
+p4
+```
+
+```{r}
+colnames(compare_5_div)[2:3] = c('Original Tree','New Tree')
+compare_5_plot = compare_5_div %>% tidyr::pivot_longer(!UserName, names_to = 'shannon', values_to = 'div')
+
+compare_5_plot$shannon <- factor(compare_5_plot$shannon, levels = c('Original Tree', 'New Tree'), ordered = TRUE)
+
+p5 <-
+  ggplot(compare_5_plot, aes(x = shannon, y = div, fill = shannon)) +
+  geom_violin(draw_quantiles = 0.5) +
+    annotate(
+    "segment",
+    x = 1,
+    xend = 2,
+    y = 2.75,
+    yend = 2.75,
+    size = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 2.85,
+    label = "***",
+    size =4
+  ) +
+  labs(x = 'Grain Products', y = 'Shannon diversity', title = '') +
+  scale_fill_manual(values = c('#FFD390', '#FE9700')) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size = 8, color = 'black'),
+    axis.title.x = element_text(size = 8, color = 'black', face = 'bold'),
+    axis.title.y = element_text(size = 8, color = 'black')
+  )
+p5
+```
+
+```{r}
+colnames(compare_6_div)[2:3] = c('Original Tree','New Tree')
+compare_6_plot = compare_6_div %>% tidyr::pivot_longer(!UserName, names_to = 'shannon', values_to = 'div')
+
+compare_6_plot$shannon <- factor(compare_6_plot$shannon, levels = c('Original Tree', 'New Tree'), ordered = TRUE)
+
+p6 <-
+  ggplot(compare_6_plot, aes(x = shannon, y = div, fill = shannon)) +
+  geom_violin(draw_quantiles = 0.5) +
+  #geom_point(aes(x = shannon, y = div), size=2, alpha=0.01) +
+  #geom_line(aes(x = shannon, y = div, group = UserName), size=2, alpha=0.01) +
+    annotate(
+    "segment",
+    x = 1,
+    xend = 2,
+    y = 3,
+    yend = 3,
+    size = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 3.1,
+    label = "***",
+    size =4
+  ) +
+  labs(x = 'Vegetables', y = 'Shannon diversity', title = '') +
+  scale_fill_manual(values = c('#D8FAC4', '#5DD047')) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size = 8, color = 'black'),
+    axis.title.x = element_text(size = 8, color = 'black', face = 'bold'),
+    axis.title.y = element_text(size = 8, color = 'black')
+  )
+p6
+```
+
+```{r}
+colnames(compare_7_div)[2:3] = c('Original Tree','New Tree')
+compare_7_plot = compare_7_div %>% tidyr::pivot_longer(!UserName, names_to = 'shannon', values_to = 'div')
+
+compare_7_plot$shannon <- factor(compare_7_plot$shannon, levels = c('Original Tree', 'New Tree'), ordered = TRUE)
+
+p7 <-
+  ggplot(compare_7_plot, aes(x = shannon, y = div, fill = shannon)) +
+  geom_violin(draw_quantiles = 0.5) +
+  #geom_point(aes(x = shannon, y = div), size=2, alpha=0.01) +
+  #geom_line(aes(x = shannon, y = div, group = UserName), size=2, alpha=0.01) +
+    annotate(
+    "segment",
+    x = 1,
+    xend = 2,
+    y = 3,
+    yend = 3,
+    size = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 3.1,
+    label = "***",
+    size =4
+  ) +
+  labs(x = 'Fruits', y = 'Shannon diversity', title = '') +
+  scale_fill_manual(values = c('#f5f296', '#CBD12D')) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size = 8, color = 'black'),
+    axis.title.x = element_text(size = 8, color = 'black', face = 'bold'),
+    axis.title.y = element_text(size = 8, color = 'black')
+  )
+p7
+```
+
+```{r}
+colnames(compare_8_div)[2:3] = c('Original Tree','New Tree')
+compare_8_plot = compare_8_div %>% tidyr::pivot_longer(!UserName, names_to = 'shannon', values_to = 'div')
+
+compare_8_plot$shannon <- factor(compare_8_plot$shannon, levels = c('Original Tree', 'New Tree'), ordered = TRUE)
+
+p8 <-
+  ggplot(compare_8_plot, aes(x = shannon, y = div, fill = shannon)) +
+  geom_violin(draw_quantiles = 0.5) +
+  #geom_point(aes(x = shannon, y = div), size=2, alpha=0.01) +
+  #geom_line(aes(x = shannon, y = div, group = UserName), size=2, alpha=0.01) +
+    annotate(
+    "segment",
+    x = 1,
+    xend = 2,
+    y = 2.4,
+    yend = 2.4,
+    size = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 2.5,
+    label = "***",
+    size =4
+  ) +
+  labs(x = 'Fats, Oils, and Salad Dressings', y = 'Shannon diversity', title = '') +
+  scale_fill_manual(values = c('#D3D3D3', '#737373')) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size = 8, color = 'black'),
+    axis.title.x = element_text(size = 8, color = 'black', face = 'bold'),
+    axis.title.y = element_text(size = 8, color = 'black')
+  )
+p8
+```
+
+```{r}
+colnames(compare_9_div)[2:3] = c('Original Tree','New Tree')
+compare_9_plot = compare_9_div %>% tidyr::pivot_longer(!UserName, names_to = 'shannon', values_to = 'div')
+
+compare_9_plot$shannon <- factor(compare_9_plot$shannon, levels = c('Original Tree', 'New Tree'), ordered = TRUE)
+
+p9 <-
+  ggplot(compare_9_plot, aes(x = shannon, y = div, fill = shannon)) +
+  geom_violin(draw_quantiles = 0.5) +
+  #geom_point(aes(x = shannon, y = div), size=2, alpha=0.01) +
+  #geom_line(aes(x = shannon, y = div, group = UserName), size=2, alpha=0.01) +
+    annotate(
+    "segment",
+    x = 1,
+    xend = 2,
+    y = 2.7,
+    yend = 2.7,
+    size = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 2.8,
+    label = "***",
+    size =4
+  ) +
+  labs(x = 'Sugars, Sweets, and Beverages', y = 'Shannon diversity', title = '') +
+  scale_fill_manual(values = c('#EEA0EC', '#C91ACB')) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text = element_text(size = 8, color = 'black'),
+    axis.title.x = element_text(size = 8, color = 'black', face = 'bold'),
+    axis.title.y = element_text(size = 8, color = 'black')
+  )
+p9
+```
+```{r}
+# combine into one plot
+g1 = cowplot::plot_grid(p1, p2, p3, p4, p5, p6, p7, p8, p9, nrow = 3, ncol = 3)
+g1
+ggsave("figure_s2.png", width = 9, height = 9, units = "in", dpi=300)
+
+```

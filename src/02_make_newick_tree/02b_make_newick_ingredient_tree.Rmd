@@ -1,0 +1,35 @@
+---
+title: "02_make_newick_tree"
+---
+
+# prepare files to make the newick tree
+
+required files: 
+1. nodes_fn == taxonomy, modified for ingredient codes and descriptions
+2. food_database_fn == contains FNDDS 15-18 Ingredient codes and descriptions   
+
+# make tree
+
+```{r}
+source("../../lib/make.food.tree.r")
+source("../../lib/newick.tree.r")
+```
+
+```{r}
+
+
+make.food.tree(nodes_fn = "../../data/02/NodeLabelsMCT_updated_082323.txt", 
+               food_database_fn = "../../data/02/wweia_ingredient_taxa.txt", 
+               output_tree_fn = "../../data/02/wweia_ingredient_tree.txt", 
+               output_taxonomy_fn = "../../data/02/wweia_ingredient_taxonomy.txt")
+```
+
+```{r}
+
+# do the same for WWEIA foodcodes for comparison
+
+make.food.tree(nodes_fn = "../../data/02/foodcode/NodeLabelsMCT.txt", 
+               food_database_fn = "../../data/02/foodcode/wweia_foodcode_taxa.txt", 
+               output_tree_fn = "../../data/02/foodcode/wweia_foodcode_tree.txt", 
+               output_taxonomy_fn = "../../data/02/foodcode/wweia_foodcode_taxonomy.txt")
+```

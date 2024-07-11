@@ -1,0 +1,228 @@
+---
+title: "03_sankey_diagram_foodcodes_to_ingredients"
+author: "Jules Larke"
+date: '2024-05-31'
+output: html_document
+---
+
+```{r}
+setwd('/Users/jules.larke/work/nhanes_crp/lib/03_ingred_otu_abundance')
+set.seed(0)
+require(data.table)
+library(dplyr)
+library(networkD3)
+
+#import data (first clone repo: https://github.com/JulesLarke-USDA/wweia_ingredients to generate file)
+foods <- data.table::fread('../../../github/wweia_ingredients/data/04/wweia_food_and_ingred_codes.csv', header=T, select = c('SEQN', 'foodcode', 'food_description', 'ingred_code', 'ingred_desc'))
+
+
+# subset to only include our NHANES study population
+ingred <- data.table::fread('../../data/03/recalls_e_adjust_drywt_no_salt_water.txt', sep = '\t', header=T)
+
+ingred_taxa <- data.table::fread('../../data/02/wweia_ingredient_taxa.txt', sep = '\t', header=T)
+ingred_taxa = ingred_taxa %>% select(`Ingredient code`, FoodID)
+colnames(ingred_taxa)[1] = 'ingred_code'
+#CHECK for the same data (shows 19483, NOT 19460)!
+
+foods = foods %>% filter(SEQN %in% ingred$UserName)
+
+foods = foods %>% filter(!ingred_code %in% c(2003, 2005, 2007,	2009,	2010,	2011,	2012,	2014,	2015,	2020,	2021,	2023,	2024,	2025,	2026,	2027, 2028,	2029,	2030,	2031,	2034,	2035,	2038,	2042,	2043))
+
+foods = foods %>% filter(!ingred_code %in% c(18369, 18370, 18372, 18373, 18374, 18375, 999328))
+```
+
+
+```{r}
+# this subsets the participants that consumed any milk products
+food_1 = foods %>% filter(foodcode %in% (10000000:19999999))
+food_2 = foods %>% filter(foodcode %in% (20000000:29999999))
+food_3 = foods %>% filter(foodcode %in% (30000000:39999999))
+food_4 = foods %>% filter(foodcode %in% (40000000:49999999))
+food_5 = foods %>% filter(foodcode %in% (50000000:59999999))
+food_6 = foods %>% filter(foodcode %in% (60000000:69999999))
+food_7 = foods %>% filter(foodcode %in% (70000000:79999999))
+food_8 = foods %>% filter(foodcode %in% (80000000:89999999))
+food_9 = foods %>% filter(foodcode %in% (90000000:99999999))
+
+n_distinct(food_1$foodcode)
+n_distinct(food_2$foodcode)
+n_distinct(food_3$foodcode)
+n_distinct(food_4$foodcode)
+n_distinct(food_5$foodcode)
+n_distinct(food_6$foodcode)
+n_distinct(food_7$foodcode)
+n_distinct(food_8$foodcode)
+n_distinct(food_9$foodcode)
+
+# parse the each food group category from ingredients
+ingred_1 = ingred_taxa %>% filter(grepl("^1",FoodID))
+ingred_2 = ingred_taxa %>% filter(grepl("^2",FoodID))
+ingred_3 = ingred_taxa %>% filter(grepl("^3",FoodID))
+ingred_4 = ingred_taxa %>% filter(grepl("^4",FoodID))
+ingred_4 = ingred_4 %>% filter(!grepl("^45",FoodID)) # exclude spices category 45XX
+ingred_5 = ingred_taxa %>% filter(grepl("^5",FoodID))
+ingred_6 = ingred_taxa %>% filter(grepl("^6",FoodID))
+ingred_7 = ingred_taxa %>% filter(grepl("^7",FoodID))
+ingred_8 = ingred_taxa %>% filter(grepl("^8",FoodID))
+ingred_8 = ingred_8 %>% filter(!grepl("^89",FoodID))
+ingred_9 = ingred_taxa %>% filter(grepl("^9",FoodID))
+ingred_9 = ingred_9 %>% filter(!grepl("^990",FoodID))
+
+n_distinct(ingred_1$ingred_code)
+n_distinct(ingred_2$ingred_code)
+n_distinct(ingred_3$ingred_code)
+n_distinct(ingred_4$ingred_code)
+n_distinct(ingred_5$ingred_code)
+n_distinct(ingred_6$ingred_code)
+n_distinct(ingred_7$ingred_code)
+n_distinct(ingred_8$ingred_code)
+n_distinct(ingred_9$ingred_code)
+
+ingred_1$category = 'Milk and milk products'
+ingred_2$category = 'Meat, Poultry, Fish, and Mixtures'
+ingred_3$category = 'Eggs'
+ingred_4$category = 'Beans, Peas, Legumes, Nuts, and Seeds'
+ingred_5$category = 'Grain Products'
+ingred_6$category = 'Vegetables'
+ingred_7$category = 'Fruits'
+ingred_8$category = 'Fats, Oils, and Salad Dressings'
+ingred_9$category = 'Sugars, Sweets, and Beverages'
+
+ingred_all = rbind(ingred_1, ingred_2, ingred_3, ingred_4, ingred_5, ingred_6, ingred_7, ingred_8, ingred_9)
+
+target <- c("Milk and milk products",
+  "Meat, Poultry, Fish, and Mixtures",
+  "Eggs",
+  "Beans, Peas, Legumes, Nuts, and Seeds",
+  "Grain Products",
+  "Vegetables",
+  "Fruits",
+  "Fats, Oils, and Salad Dressings",
+  "Sugars, Sweets, and Beverages")
+
+# cross tabulate
+food_ingred_1 = left_join(food_1, ingred_all, on = 'ingred_code')
+food_ingred_1 = food_ingred_1 %>% distinct(food_ingred_1$ingred_code, .keep_all = TRUE)
+f1 <- as.data.frame(xtabs(~ category, data = food_ingred_1), stringsAsFactors = FALSE)
+f1 <- f1[match(target, f1$category),]
+
+food_ingred_2 = left_join(food_2, ingred_all, on = 'ingred_code')
+food_ingred_2 = food_ingred_2 %>% distinct(food_ingred_2$ingred_code, .keep_all = TRUE)
+f2 <- as.data.frame(xtabs(~ category, data = food_ingred_2), stringsAsFactors = FALSE)
+f2 <- f2[match(target, f2$category),]
+
+food_ingred_3 = left_join(food_3, ingred_all, on = 'ingred_code')
+food_ingred_3 = food_ingred_3 %>% distinct(food_ingred_3$ingred_code, .keep_all = TRUE)
+f3 <- as.data.frame(xtabs(~ category, data = food_ingred_3), stringsAsFactors = FALSE)
+f3 <- f3[match(target, f3$category),]
+
+food_ingred_4 = left_join(food_4, ingred_all, on = 'ingred_code')
+food_ingred_4 = food_ingred_4 %>% distinct(food_ingred_4$ingred_code, .keep_all = TRUE)
+f4 <- as.data.frame(xtabs(~ category, data = food_ingred_4), stringsAsFactors = FALSE)
+f4 <- f4[match(target, f4$category),]
+
+food_ingred_5 = left_join(food_5, ingred_all, on = 'ingred_code')
+food_ingred_5 = food_ingred_5 %>% distinct(food_ingred_5$ingred_code, .keep_all = TRUE)
+f5 <- as.data.frame(xtabs(~ category, data = food_ingred_5), stringsAsFactors = FALSE)
+f5 <- f5[match(target, f5$category),]
+
+food_ingred_6 = left_join(food_6, ingred_all, on = 'ingred_code')
+food_ingred_6 = food_ingred_6 %>% distinct(food_ingred_6$ingred_code, .keep_all = TRUE)
+f6 <- as.data.frame(xtabs(~ category, data = food_ingred_6), stringsAsFactors = FALSE)
+f6 <- f6[match(target, f6$category),]
+
+food_ingred_7 = left_join(food_7, ingred_all, on = 'ingred_code')
+food_ingred_7 = food_ingred_7 %>% distinct(food_ingred_7$ingred_code, .keep_all = TRUE)
+f7 <- as.data.frame(xtabs(~ category, data = food_ingred_7), stringsAsFactors = FALSE)
+f7 <- f7[match(target, f7$category),]
+
+food_ingred_8 = left_join(food_8, ingred_all, on = 'ingred_code')
+food_ingred_8 = food_ingred_8 %>% distinct(food_ingred_8$ingred_code, .keep_all = TRUE)
+f8 <- as.data.frame(xtabs(~ category, data = food_ingred_8), stringsAsFactors = FALSE)
+f8 <- f8[match(target, f8$category),]
+
+food_ingred_9 = left_join(food_9, ingred_all, on = 'ingred_code')
+food_ingred_9 = food_ingred_9 %>% distinct(food_ingred_9$ingred_code, .keep_all = TRUE)
+f9 <- as.data.frame(xtabs(~ category, data = food_ingred_9), stringsAsFactors = FALSE)
+f9 <- f9[match(target, f9$category),]
+
+f_all <- data.frame(f1$category, f1$Freq, f2$Freq, f3$Freq, f4$Freq, f5$Freq, f6$Freq, f7$Freq, f8$Freq, f9$Freq)
+
+rownames(f_all) <- f_all$f1.category
+f_all$f1.category <- NULL
+```
+
+```{r}
+## create a dataframe with 18 nodes (9 for mixed meals and 9 for ingredients)
+nodes = data.frame("name" = c(
+  "Milk and milk products (N = 440)",
+  "Meat, Poultry, Fish, and Mixtures (N = 1560)",
+  "Eggs (N = 163)",
+  "Beans, Peas, Legumes, Nuts, and Seeds (N = 287)",
+  "Grain Products (N = 1709)",
+  "Vegetables (N = 267)",
+  "Fruits (N = 1270)",
+  "Fats, Oils, and Salad Dressings (N = 105)",
+  "Sugars, Sweets, and Beverages (N = 567)",
+  "Milk and milk products (N = 130)",
+  "Meat, Poultry, Fish, and Mixtures (N = 355)",
+  "Eggs (N = 9)",
+  "Beans, Peas, Legumes, Nuts, and Seeds (N = 101)",
+  "Grain Products (N = 53)",
+  "Vegetables (N = 155)",
+  "Fruits (N = 222)",
+  "Fats, Oils, and Salad Dressings (N = 68)",
+  "Sugars, Sweets, and Beverages (N = 151)"
+))
+
+
+## create edges with weights
+s <- c(rep(0,9), rep(1,9), rep(2,9), rep(3,9), rep(4,9), rep(5,9), rep(6,9), rep(7,9), rep(8,9))
+t <- c(rep(c(9,10,11,12,13,14,15,16,17),9))
+v <- c(f_all$f1.Freq, f_all$f2.Freq, f_all$f3.Freq, f_all$f4.Freq, f_all$f5.Freq, f_all$f6.Freq, f_all$f7.Freq, f_all$f8.Freq, f_all$f9.Freq)
+
+links = data.frame(s, t, v)
+
+## set column names for links
+names(links) = c("source", "target", "value")
+
+# add edge types for coloring purpose
+links$group = c(
+  rep("type_0", 9),
+  rep("type_1", 9),
+  rep("type_2", 9),
+  rep("type_3", 9),
+  rep("type_4", 9),
+  rep("type_5", 9),
+  rep("type_6", 9),
+  rep("type_7", 9),
+  rep("type_8", 9)
+)
+
+
+
+# ## Create custom color list using d3 for each node
+node_color <-
+  'd3.scaleOrdinal() .domain(["Milk and milk products (N = 440)", "Meat, Poultry, Fish, and Mixtures (N = 1560)",  "Eggs (N = 163)",  "Beans, Peas, Legumes, Nuts, and Seeds (N = 287)", "Grain Products (N = 1709)",  "Vegetables (N = 267)", "Fruits (N = 1270)",  "Fats, Oils, and Salad Dressings (N = 105)",  "Sugars, Sweets, and Beverages (N = 567)", "Milk and milk products (N = 130)",  "Meat, Poultry, Fish, and Mixtures (N = 355)",  "Eggs (N = 9)",  "Beans, Peas, Legumes, Nuts, and Seeds (N = 101)",  "Grain Products (N = 53)",  "Vegetables (N = 155)",  "Fruits (N = 222)",  "Fats, Oils, and Salad Dressings (N = 68)",  "Sugars, Sweets, and Beverages (N = 151)", "type_0", "type_1", "type_2", "type_3", "type_4", "type_5", "type_6", "type_7", "type_8"]) .range(["#00A2F2",  "#D43F1F",  "#A8863A","#662A00",  "#FE9700",  "#5DD047",  "#CBD12D",  "#737373",  "#C91ACB", "#D6F5F5", "#E8AD91",  "#F7E8BA", "#B9896F", "#FFD390", "#D8FAC4", "#f5f296", "#D3D3D3", "#EEA0EC", "#D6F5F5", "#E8AD91",  "#F7E8BA", "#B9896F", "#FFD390", "#D8FAC4", "#f5f296", "#D3D3D3", "#EEA0EC"])'
+
+## Draw Sankey Diagram
+p = sankeyNetwork(Links = links, Nodes = nodes,
+                  Source = "source", Target = "target",
+                  Value = "value", NodeID = "name",
+                  fontSize = 40, fontFamily = 'Helvetica', nodeWidth = 40,
+                  colourScale = node_color,
+                  LinkGroup="group")
+p
+
+saveNetwork(p,  "/Users/jules.larke/work/nhanes_crp/lib/03_ingred_otu_abundance/sankey_plot_mm_to_ing.html")
+```
+
+```{r}
+library(webshot2)
+# save the widget
+
+webshot2::webshot("sankey_plot_mm_to_ing.html", "sankey_plot_mm_to_ing.png", vwidth = 2560, vheight = 1440)
+```
+
+
+

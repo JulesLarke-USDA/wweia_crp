@@ -1,0 +1,75 @@
+---
+title: "03_otu_abundance"
+---
+
+
+```{r}
+set.seed(0)
+require(data.table)
+library(dplyr)
+
+#import diet recall data with foodcodes
+recalls.use <- data.table::fread('../../data/00/foodcode/wweia_qc_crp_fc.txt', sep = '\t', header=T)
+colnames(recalls.use)
+
+kcal = recalls.use %>% group_by(SEQN) %>% summarise(kcal = sum(DR2IKCAL))
+
+recalls.use <- left_join(recalls.use, kcal, by = 'SEQN')
+
+recall_adjusted <- recalls.use %>% group_by(SEQN) %>% mutate(food_g_adjust = DR2IGRMS/kcal*1000, water_adjust = DR2IMOIS/kcal*1000)
+
+# three foods had two different codes for the same description, assigning a single code for each
+recall_adjusted$foodcode[recall_adjusted$foodcode == 42116050] <- 42116000
+
+recall_adjusted$foodcode[recall_adjusted$foodcode == 27510269] <- 27510267
+
+recall_adjusted$foodcode[recall_adjusted$foodcode == 58104095] <- 58104120
+
+recall_adjusted$food_dry_wt = recall_adjusted$food_g_adjust - recall_adjusted$water_adjust # get dry weights for ingredients consumed
+
+no_water <- recall_adjusted %>% select(SEQN, foodcode, DRXFCLD, food_dry_wt) %>% filter(!DRXFCLD %in% c('Water, tap', 'Water, bottled, unsweetened', 'CARBONATED WATER, UNSWEETENED (INCL CLUB SODA)', 'CARBONATED  WATER, SUGAR-FREE', 'Water, baby, bottled, unsweetened'))
+
+taxa = read.csv("../../data/02/foodcode/wweia_foodcode_taxa.txt", sep="\t")
+colnames(taxa)[1] = 'foodcode'
+
+no_water_taxa <- merge(no_water, taxa, by = "foodcode")
+
+no_water_taxa = no_water_taxa %>% select('SEQN', 'foodcode', 'food_dry_wt', 'Main.food.description')
+
+write.csv(no_water_taxa, '../../data/03/food_tree_compare.csv')
+
+length(unique(no_water_taxa$SEQN))
+```
+
+
+```{r}
+# sum total grams of each food eaten per subject
+otu.total <- aggregate(food_dry_wt ~ SEQN + foodcode, data=no_water_taxa, FUN="sum")
+colnames(otu.total)<-c("UserName", "FoodCode", "FoodAmt") #rename columns for creating otu_table
+write.table(otu.total, "../../data/03/foodcode/recalls_foodcode_drywt_no_water.txt", sep="\t", row.names=F, quote=F)
+```
+
+```{r}
+#sanity check-- how many unique taxa are in here? 
+length(unique(no_water_taxa$foodcode)) 
+length(unique(otu.total$FoodCode)) 
+```
+
+```{r}
+#Need to merge the ingredient codes with the wweia_ingredient_taxonomy
+taxonomy = read.csv("../../data/02/foodcode/wweia_foodcode_taxonomy.txt", sep="\t") 
+taxonomy$taxonomy <- gsub(pattern = ";", replacement = "\\|", x = taxonomy$taxonomy)
+write.table(taxonomy, "../../data/02/foodcode/wweia_foodcode_taxonomy_pipe_delim.txt", sep="\t", row.names=F, quote=F)
+```
+
+```{r}
+source("../../lib/make.food.otu_2.R")
+```
+
+
+```{r}
+make.food.otu(food_records_fn = "../../data/03/foodcode/recalls_foodcode_drywt_no_water.txt",
+              food_record_id = "UserName", 
+              food_taxonomy_fn= "../../data/02/foodcode/wweia_foodcode_taxonomy_pipe_delim.txt", 
+              output_fn="../../data/03/foodcode/foodcode_otu_e_adjust_drywt_no_water.txt")
+```

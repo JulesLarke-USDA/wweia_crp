@@ -1,0 +1,196 @@
+require(data.table)
+library(dplyr)
+
+# load data
+recalls_crp <- data.table::fread('../../data/00/wweia_qc_crp.txt', sep = '\t', header=T)
+global_dii <- read.csv('../../data/05/dii/DII_item_global.csv')
+
+recalls_crp$SEQN %>% n_distinct()
+#calculate grams for certain food intakes used in DII calculation:
+
+#onion
+dii_onion <- recalls_crp %>% filter(ingred_code %in% c(11282, 11283, 11284, 11288, 11290, 11291))
+dii_onion <- dii_onion %>% group_by(SEQN) %>% summarise(onion = sum(Ingred_consumed_g))
+zero_onion <- recalls_crp %>% filter(!SEQN %in% dii_onion$SEQN) %>% distinct(SEQN)
+zero_onion$onion = 0
+onion <- rbind(dii_onion, zero_onion)
+
+#garlic
+dii_garlic <- recalls_crp %>% filter(ingred_code %in% c(11215))
+dii_garlic <- dii_garlic %>% group_by(SEQN) %>% summarise(garlic = sum(Ingred_consumed_g))
+zero_garlic <- recalls_crp %>% filter(!SEQN %in% dii_garlic$SEQN) %>% distinct(SEQN)
+zero_garlic$garlic = 0
+garlic <- rbind(dii_garlic, zero_garlic)
+
+#ginger
+dii_ginger <- recalls_crp %>% filter(ingred_code %in% c(11216))
+dii_ginger <- dii_ginger %>% group_by(SEQN) %>% summarise(ginger = sum(Ingred_consumed_g))
+zero_ginger <- recalls_crp %>% filter(!SEQN %in% dii_ginger$SEQN) %>% distinct(SEQN)
+zero_ginger$ginger = 0
+ginger <- rbind(dii_ginger, zero_ginger)
+
+#tumeric
+dii_tumeric <- recalls_crp %>% filter(ingred_code %in% c(2043))
+dii_tumeric <- dii_tumeric %>% group_by(SEQN) %>% summarise(tumeric = sum(Ingred_consumed_g))
+zero_tumeric <- recalls_crp %>% filter(!SEQN %in% dii_tumeric$SEQN) %>% distinct(SEQN)
+zero_tumeric$tumeric = 0
+tumeric <- rbind(dii_tumeric, zero_tumeric)
+
+#black and green tea
+dii_tea <- recalls_crp %>% filter(ingred_code %in% c(14185, 14190, 14199, 14206, 14207, 14211, 14247, 14260, 14261, 14278, 14280, 14281,
+                                                     14352, 14353, 14355, 14356, 14366, 14368, 14370, 14376, 14381))
+dii_tea <- dii_tea %>% group_by(SEQN) %>% summarise(tea = sum(Ingred_consumed_g))
+zero_tea <- recalls_crp %>% filter(!SEQN %in% dii_tea$SEQN) %>% distinct(SEQN)
+zero_tea$tea = 0
+tea <- rbind(dii_tea, zero_tea)
+
+#pepper (black/cayenne)
+dii_pepper <- recalls_crp %>% filter(ingred_code %in% c(2030, 2031))
+dii_pepper <- dii_pepper %>% group_by(SEQN) %>% summarise(pepper = sum(Ingred_consumed_g))
+zero_pepper <- recalls_crp %>% filter(!SEQN %in% dii_pepper$SEQN) %>% distinct(SEQN)
+zero_pepper$pepper = 0
+pepper <- rbind(dii_pepper, zero_pepper)
+
+#thyme 
+dii_thyme <- recalls_crp %>% filter(ingred_code %in% c(2042))
+dii_thyme <- dii_thyme %>% group_by(SEQN) %>% summarise(thyme = sum(Ingred_consumed_g))
+zero_thyme <- recalls_crp %>% filter(!SEQN %in% dii_thyme$SEQN) %>% distinct(SEQN)
+zero_thyme$thyme = 0
+thyme <- rbind(dii_thyme, zero_thyme)
+
+#oregano 
+dii_oregano <- recalls_crp %>% filter(ingred_code %in% c(2027))
+dii_oregano <- dii_oregano %>% group_by(SEQN) %>% summarise(oregano = sum(Ingred_consumed_g))
+zero_oregano <- recalls_crp %>% filter(!SEQN %in% dii_oregano$SEQN) %>% distinct(SEQN)
+zero_oregano$oregano = 0
+oregano <- rbind(dii_oregano, zero_oregano)
+
+# no saffron or rosemary in FNDDS
+
+# select nutrients and calculate intakes grouping by SEQN
+dii_select <- recalls_crp %>% group_by(SEQN) %>% select(Alcohol, vitamin_b12_total, `Vitamin B-6`, `Carotene, beta`, Caffeine, Carbohydrate, Cholesterol, Energy, `Total Fat`,
+                       `Fiber, total dietary`, `Folate, DFE`, Iron, Magnesium, `Fatty acids, total monounsaturated`, `Fatty acids, total polyunsaturated`,
+                       `Fatty acids, total saturated`, `Linoleic acid`, `Linolenic acid`, `Eicosapentaenoic acid`, `Docosahexaenoic acid`,
+                       `Docosapentaenoic acid`, Protein, Niacin, Riboflavin, Selenium, Thiamin, `Vitamin A, RAE`, `Vitamin C`, `Vitamin D (D2 + D3)`,
+                       vitamin_e_total, Zinc)  %>% summarise(across(Alcohol:Zinc, sum, .names = "{.col}_sum"))
+# missing Eugenol, trans fat, flavan-3-ol, flavones, flavonols, flavanones, anthocyanidins, isoflavones, saffron, rosemary
+# total of 35/45 DII variables used
+
+# combine with the foods 
+
+all_dii <- dii_select %>% left_join(onion, by='SEQN') %>% left_join(garlic, by='SEQN') %>% left_join(ginger, by='SEQN') %>% left_join(oregano, by='SEQN') %>% left_join(pepper, by='SEQN') %>% left_join(tea, by='SEQN') %>% left_join(thyme, by='SEQN') %>% left_join(tumeric, by='SEQN')
+
+
+# find prevalence of DII food components:
+#colnames(all_dii)
+#foods = all_dii %>% select(onion:thyme_oregano)
+#foods$omega3 <- NULL
+
+#res <- colSums(foods==0)/nrow(foods)*100
+#res # tumeric and thyme_oregano are >90% zeros, will remove (taxaHFE has the same prevalence filter = 0.1)
+
+# create omega-3 FA variable by summing linolenic, EPA, DPA and DHA
+# omega-6 will just be linoleic acid
+all_dii$omega3 = all_dii$`Linolenic acid_sum` + all_dii$`Eicosapentaenoic acid_sum` + all_dii$`Docosahexaenoic acid_sum` + all_dii$`Docosapentaenoic acid_sum`
+all_dii$`Linolenic acid_sum` <- NULL
+all_dii$`Docosahexaenoic acid_sum` <- NULL
+all_dii$`Eicosapentaenoic acid_sum` <- NULL
+all_dii$`Docosapentaenoic acid_sum` <- NULL
+
+# normalize the values of each DII component per 1000 kcals
+adjusted_dii <- all_dii %>% group_by(SEQN) %>% summarise(across(Alcohol_sum:omega3, list(~./Energy_sum*1000), .names = "{.col}_adjust"))
+
+adjusted_dii$Energy_sum_adjust <- all_dii$Energy_sum # replacing Calories with non-normalized values for DII calculation
+adjusted_dii$Caffeine_sum_adjust = adjusted_dii$Caffeine_sum_adjust / 1000
+
+t = global_dii %>% tibble::column_to_rownames(var = 'item')
+global = as.data.frame(t(t)) 
+
+adjusted_dii$Alcohol_z = (adjusted_dii$Alcohol_sum_adjust - global$alcohol[2]) / global$alcohol[3]
+adjusted_dii$B12_z = (adjusted_dii$vitamin_b12_total_sum_adjust - global$b12[2]) / global$b12[3]
+adjusted_dii$B6_z = (adjusted_dii$`Vitamin B-6_sum_adjust` - global$b6[2]) / global$b6[3]
+adjusted_dii$Beta_carotene_z = (adjusted_dii$`Carotene, beta_sum_adjust` - global$beta.carotene[2]) / global$beta.carotene[3]
+adjusted_dii$Caffeine_z = (adjusted_dii$Caffeine_sum_adjust - global$caffeine[2]) / global$caffeine[3]
+adjusted_dii$Carb_z = (adjusted_dii$Carbohydrate_sum_adjust - global$avg.carb[2]) / global$avg.carb[3]
+adjusted_dii$Cholesterol_z = (adjusted_dii$Cholesterol_sum_adjust - global$chole[2]) / global$chole[3]
+adjusted_dii$Energy_z = (adjusted_dii$Energy_sum_adjust - global$kcal[2]) / global$kcal[3]
+adjusted_dii$Total_fat_z = (adjusted_dii$`Total Fat_sum_adjust` - global$avg.fat[2]) / global$avg.fat[3]
+adjusted_dii$Fiber_z = (adjusted_dii$`Fiber, total dietary_sum_adjust` - global$fiber[2]) / global$fiber[3]
+adjusted_dii$Folic_acid_z = (adjusted_dii$`Folate, DFE_sum_adjust` - global$folic.acid[2]) / global$folic.acid[3]
+adjusted_dii$Iron_z = (adjusted_dii$Iron_sum_adjust - global$iron[2]) / global$iron[3]
+adjusted_dii$Magnesium_z = (adjusted_dii$Magnesium_sum_adjust - global$magnesium[2]) / global$magnesium[3]
+adjusted_dii$MUFA_z = (adjusted_dii$`Fatty acids, total monounsaturated_sum_adjust` - global$MUFA[2]) / global$MUFA[3]
+adjusted_dii$PUFA_z = (adjusted_dii$`Fatty acids, total polyunsaturated_sum_adjust` - global$PUFA[2]) / global$PUFA[3]
+adjusted_dii$Sat_fat_z = (adjusted_dii$`Fatty acids, total saturated_sum_adjust` - global$sat.fat[2]) / global$sat.fat[3]
+adjusted_dii$Omega_6_z = (adjusted_dii$`Linoleic acid_sum_adjust` - global$omega6[2]) / global$omega6[3]
+adjusted_dii$Protein_z = (adjusted_dii$Protein_sum_adjust - global$avg.prot[2]) / global$avg.prot[3]
+adjusted_dii$Niacin_z = (adjusted_dii$Niacin_sum_adjust - global$niacin[2]) / global$niacin[3]
+adjusted_dii$Riboflavin_z = (adjusted_dii$Riboflavin_sum_adjust - global$riboflavin[2]) / global$riboflavin[3]
+adjusted_dii$Selenium_z = (adjusted_dii$Selenium_sum_adjust - global$selenium[2]) / global$selenium[3]
+adjusted_dii$Thiamin_z = (adjusted_dii$Thiamin_sum_adjust - global$thiamin[2]) / global$thiamin[3]
+adjusted_dii$Vit_A_z = (adjusted_dii$`Vitamin A, RAE_sum_adjust` - global$vit.A[2]) / global$vit.A[3]
+adjusted_dii$Vit_C_z = (adjusted_dii$`Vitamin C_sum_adjust` - global$vit.C[2]) / global$vit.C[3]
+adjusted_dii$Vit_D_z = (adjusted_dii$`Vitamin D (D2 + D3)_sum_adjust` - global$vit.D[2]) / global$vit.D[3]
+adjusted_dii$Vit_E_z = (adjusted_dii$vitamin_e_total_sum_adjust - global$vit.E[2]) / global$vit.E[3]
+adjusted_dii$Zinc_z = (adjusted_dii$Zinc_sum_adjust - global$zinc[2]) / global$zinc[3]
+adjusted_dii$Onion_z = (adjusted_dii$onion_adjust - global$onion[2]) / global$onion[3]
+adjusted_dii$Garlic_z = (adjusted_dii$garlic_adjust - global$garlic[2]) / global$garlic[3]
+adjusted_dii$Ginger_z = (adjusted_dii$ginger_adjust - global$ginger[2]) / global$ginger[3]
+adjusted_dii$Pepper_z = (adjusted_dii$pepper_adjust - global$pepper[2]) / global$pepper[3]
+adjusted_dii$Tea_z = (adjusted_dii$tea_adjust - global$green.tea[2]) / global$green.tea[3]
+adjusted_dii$Omega_3_z = (adjusted_dii$omega3_adjust - global$omega3[2]) / global$omega3[3]
+
+#double check units
+adjusted_dii <- adjusted_dii %>% select(SEQN, ends_with('_z'))
+
+z <- adjusted_dii %>% tibble::column_to_rownames(var = 'SEQN')
+
+#convert to percentile Z-scores
+dii_z = as.data.frame(2 * pnorm(as.matrix(z)) - 1)
+
+dii_z$Alcohol_z = dii_z$Alcohol_z * global$alcohol[1]
+dii_z$B12_z = dii_z$B12_z * global$b12[1]
+dii_z$B6_z = dii_z$B6_z * global$b6[1]
+dii_z$Beta_carotene_z = dii_z$Beta_carotene_z * global$beta.carotene[1]
+dii_z$Caffeine_z = dii_z$Caffeine_z * global$caffeine[1]
+dii_z$Carb_z = dii_z$Carb_z * global$avg.carb[1]
+dii_z$Cholesterol_z = dii_z$Cholesterol_z * global$chole[1]
+dii_z$Energy_z = dii_z$Energy_z * global$kcal[1]
+dii_z$Total_fat_z = dii_z$Total_fat_z * global$avg.fat[1]
+dii_z$Fiber_z = dii_z$Fiber_z * global$fiber[1]
+dii_z$Folic_acid_z = dii_z$Folic_acid_z * global$folic.acid[1]
+dii_z$Iron_z = dii_z$Iron_z * global$iron[1]
+dii_z$Magnesium_z = dii_z$Magnesium_z * global$magnesium[1]
+dii_z$MUFA_z = dii_z$MUFA_z * global$MUFA[1]
+dii_z$PUFA_z = dii_z$PUFA_z * global$PUFA[1]
+dii_z$Sat_fat_z = dii_z$Sat_fat_z * global$sat.fat[1]
+dii_z$Omega_6_z = dii_z$Omega_6_z * global$omega6[1]
+dii_z$Protein_z = dii_z$Protein_z * global$avg.prot[1]
+dii_z$Niacin_z = dii_z$Niacin_z * global$niacin[1]
+dii_z$Riboflavin_z = dii_z$Riboflavin_z * global$riboflavin[1]
+dii_z$Selenium_z = dii_z$Selenium_z * global$selenium[1]
+dii_z$Thiamin_z = dii_z$Thiamin_z * global$thiamin[1]
+dii_z$Vit_A_z = dii_z$Vit_A_z * global$vit.A[1]
+dii_z$Vit_C_z = dii_z$Vit_C_z * global$vit.C[1]
+dii_z$Vit_D_z = dii_z$Vit_D_z * global$vit.D[1]
+dii_z$Vit_E_z = dii_z$Vit_E_z * global$vit.E[1]
+dii_z$Zinc_z = dii_z$Zinc_z * global$zinc[1]
+dii_z$Onion_z = dii_z$Onion_z * global$onion[1]
+dii_z$Garlic_z = dii_z$Garlic_z * global$garlic[1]
+dii_z$Ginger_z = dii_z$Ginger_z * global$ginger[1]
+dii_z$Pepper_z = dii_z$Pepper_z * global$pepper[1]
+dii_z$Tea_z = dii_z$Tea_z * global$green.tea[1]
+dii_z$Omega_3_z = dii_z$Omega_3_z * global$omega3[1]
+
+dii_z$DII <- rowSums(dii_z)
+#hist(dii_z$DII)
+
+dii_z = dii_z %>% tibble::rownames_to_column(var = 'SEQN')
+
+cov <- recalls_crp %>% select(SEQN, Sex, Age, Ethnicity, family_pir, education, BMI, ever_smoker, diabetes, hypertension, crp, diet_wts) %>% distinct(SEQN, .keep_all = TRUE)
+
+crp_dii <- merge(dii_z, cov, by='SEQN')
+
+dii_select <- crp_dii %>% select(SEQN, DII, Sex:diet_wts)
+
+write.csv(dii_select, '../../data/05/dii/crp_dii_wweia.csv', row.names = FALSE)
