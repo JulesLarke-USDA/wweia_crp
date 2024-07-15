@@ -1,7 +1,7 @@
 ## first run: 
 # conda activate graphlan 
 
-cd /Users/jules.larke/work/nhanes_crp/data/03/
+cd /../data/03/
 
 graphlan_annotate.py --annot annot_1_mod2_ingred.txt ../02/wweia_ingredient_tree.txt wweia.ingred.xml
 

@@ -1,7 +1,7 @@
 ## first run: 
 # conda activate graphlan 
 
-cd /Users/jules.larke/work/github/nhanes_crp/data/03/
+cd /../data/03/
 
 graphlan_annotate.py --annot annot_1_mod2.txt ../02/foodcode/wweia_foodcode_tree.txt wweia.tree.xml
 

@@ -568,7 +568,7 @@ p6 <-
     label = "***",
     size =4
   ) +
-  labs(x = 'Vegetables', y = 'Shannon diversity', title = '') +
+  labs(x = 'Fruits', y = 'Shannon diversity', title = '') +
   scale_fill_manual(values = c('#D8FAC4', '#5DD047')) +
   theme_classic() +
   theme(
@@ -606,7 +606,7 @@ p7 <-
     label = "***",
     size =4
   ) +
-  labs(x = 'Fruits', y = 'Shannon diversity', title = '') +
+  labs(x = 'Vegetables', y = 'Shannon diversity', title = '') +
   scale_fill_manual(values = c('#f5f296', '#CBD12D')) +
   theme_classic() +
   theme(
@@ -697,6 +697,6 @@ p9
 # combine into one plot
 g1 = cowplot::plot_grid(p1, p2, p3, p4, p5, p6, p7, p8, p9, nrow = 3, ncol = 3)
 g1
-ggsave("figure_s2.png", width = 9, height = 9, units = "in", dpi=300)
+ggsave("figure_s2.png", width = 9, height = 9, units = "in", dpi=1000)
 
 ```
