@@ -170,4 +170,6 @@ dependencies:
       - werkzeug==3.0.3
       - wrapt==1.14.1
       - xgboost==2.0.3
+      - polyfuzz==0.3.3
+      - nltk==3.7
 prefix: /Users/jules.larke/opt/anaconda3/envs/nhanes_crp
