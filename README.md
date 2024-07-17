@@ -10,7 +10,7 @@ This repository contains the scripts and data used for reproducing results and v
 3. Activate the conda environment: conda activate wweia_crp
 - NOTE: if running on Apple Silicon you will need to run conda env config vars set CONDA_SUBDIR=osx-64. Then conda deactivate and conda activate wweia_crp.
 4. Run code seqentially starting from src/00
-- NOTE: Building the NHANES dataset requires *wweia_all_recalls.txt* which can be generated from https://github.com/JulesLarke-USDA/wweia_ingredients
+- NOTE: Building the NHANES dataset requires the dietary recalls *wweia_all_recalls.txt* which can be generated from https://github.com/JulesLarke-USDA/wweia_ingredients
 
 ## Required software
 - Miniconda
