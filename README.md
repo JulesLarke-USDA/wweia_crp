@@ -19,6 +19,7 @@ This repository contains the scripts and data used for reproducing results and v
   * password: yourpasswordhere
 - Change directories from the R console: `setwd("/home/docker")`
 - Navigate to the currect working directory in the Files tab: Files > More > Go To Working Directory
+![image](https://github.com/JulesLarke-USDA/wweia_crp/blob/main/doc/readme.png)
 5.  Run code seqentially starting from src/00
 - NOTE: Building the NHANES dataset requires the dietary recalls *wweia_all_recalls.txt* which can be generated from https://github.com/JulesLarke-USDA/wweia_ingredients
 
