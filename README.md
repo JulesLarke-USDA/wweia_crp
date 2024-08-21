@@ -6,7 +6,7 @@ This repository contains the scripts and data used for reproducing results and v
 
 1. Clone the repository from the terminal:<br>`git clone https://github.com/JulesLarke-USDA/wweia_crp`<br>`cd wweia_crp`
 2. Create a conda environment for running python scripts from src/wweia_crp.yml:<br>`cd doc`<br>`conda env create -f wweia_crp.yml`
-- NOTE: if running on Apple Silicon you will need to run CONDA_SUBDIR=osx-64 conda env create -f wweia_crp.yml
+- NOTE: if running on Apple Silicon you will need to run `CONDA_SUBDIR=osx-64 conda env create -f wweia_crp.yml`
 3. Activate the conda environment:<br> `conda activate wweia_crp`
 - NOTE: if running on Apple Silicon you will need to run<br> `conda env config vars set CONDA_SUBDIR=osx-64`<br> Then `conda deactivate` and `conda activate wweia_crp`
 4. R scripts are run with a local R server within a Docker (v4.32.0) container for version control purposes <br>
